@@ -19,9 +19,9 @@
 package de.rwth.idsg.steve.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.google.common.base.Strings;
 import de.rwth.idsg.steve.SteveProdCondition;
+import de.rwth.idsg.steve.service.SecretResolver;
 import de.rwth.idsg.steve.web.api.ApiControllerAdvice;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -39,7 +39,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
@@ -79,10 +78,18 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails webPageUser = User.builder()
-                .username(CONFIG.getAuth().getUserName())
-                .password(CONFIG.getAuth().getEncodedPassword())
+    public UserDetailsService userDetailsService(SecretResolver secretResolver) {
+        final var authConfig = CONFIG.getAuth();
+        final var username = secretResolver.resolveOrFallback(
+                authConfig.getUserNameVaultKey(),
+                authConfig.getUserName());
+        final var rawPassword = secretResolver.resolveOrFallback(
+                authConfig.getRawPasswordVaultKey(),
+                authConfig.getRawPassword());
+        final var encodedPassword = authConfig.getPasswordEncoder().encode(rawPassword);
+        final var webPageUser = User.builder()
+                .username(username)
+                .password(encodedPassword)
                 .roles("ADMIN")
                 .build();
 
@@ -118,20 +125,25 @@ public class SecurityConfiguration {
     }
 
     @Bean
+    public ApiKeyFilter apiKeyFilter(SecretResolver secretResolver) {
+        return new ApiKeyFilter(secretResolver);
+    }
+
+    @Bean
     @Order(1)
-    public SecurityFilterChain apiKeyFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+    public SecurityFilterChain apiKeyFilterChain(HttpSecurity http, ObjectMapper objectMapper, ApiKeyFilter apiKeyFilter) throws Exception {
         return http.antMatcher(CONFIG.getApiMapping() + "/**")
-            .csrf().disable()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            .and()
-            .addFilter(new ApiKeyFilter())
-            .authorizeRequests()
-            .anyRequest()
-            .authenticated()
-            .and()
-            .exceptionHandling().authenticationEntryPoint(new ApiKeyAuthenticationEntryPoint(objectMapper))
-            .and()
-            .build();
+                .csrf().disable()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .addFilter(apiKeyFilter)
+                .authorizeRequests()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .exceptionHandling().authenticationEntryPoint(new ApiKeyAuthenticationEntryPoint(objectMapper))
+                .and()
+                .build();
     }
 
     /**
@@ -147,11 +159,13 @@ public class SecurityConfiguration {
         private final String headerValue;
         private final boolean isApiEnabled;
 
-        public ApiKeyFilter() {
+        public ApiKeyFilter(SecretResolver secretResolver) {
             setAuthenticationManager(this);
 
             headerKey = CONFIG.getWebApi().getHeaderKey();
-            headerValue = CONFIG.getWebApi().getHeaderValue();
+            headerValue = secretResolver.resolveOrFallback(
+                    CONFIG.getWebApi().getHeaderValueVaultKey(),
+                    CONFIG.getWebApi().getHeaderValue());
             isApiEnabled = !Strings.isNullOrEmpty(headerKey) && !Strings.isNullOrEmpty(headerValue);
 
             if (!isApiEnabled) {

@@ -29,6 +29,7 @@ import de.rwth.idsg.steve.SteveConfiguration;
 import de.rwth.idsg.steve.service.DummyReleaseCheckService;
 import de.rwth.idsg.steve.service.GithubReleaseCheckService;
 import de.rwth.idsg.steve.service.ReleaseCheckService;
+import de.rwth.idsg.steve.service.SecretResolver;
 import de.rwth.idsg.steve.utils.DateTimeUtils;
 import de.rwth.idsg.steve.utils.InternetChecker;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
 import org.jooq.impl.DataSourceConnectionProvider;
 import org.jooq.impl.DefaultConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -50,22 +52,14 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.accept.ContentNegotiationManager;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import javax.annotation.PreDestroy;
 import javax.validation.Validator;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static de.rwth.idsg.steve.SteveConfiguration.CONFIG;
 
@@ -82,8 +76,15 @@ import static de.rwth.idsg.steve.SteveConfiguration.CONFIG;
 @ComponentScan("de.rwth.idsg.steve")
 public class BeanConfiguration implements WebMvcConfigurer {
 
+    private final SecretResolver secretResolver;
+
     private HikariDataSource dataSource;
     private ScheduledThreadPoolExecutor executor;
+
+    @Autowired
+    public BeanConfiguration(SecretResolver secretResolver) {
+        this.secretResolver = secretResolver;
+    }
 
     /**
      * https://github.com/brettwooldridge/HikariCP/wiki/MySQL-Configuration
@@ -95,8 +96,12 @@ public class BeanConfiguration implements WebMvcConfigurer {
 
         // set standard params
         hc.setJdbcUrl("jdbc:mysql://" + dbConfig.getIp() + ":" + dbConfig.getPort() + "/" + dbConfig.getSchema());
-        hc.setUsername(dbConfig.getUserName());
-        hc.setPassword(dbConfig.getPassword());
+        hc.setUsername(secretResolver.resolveOrFallback(
+                dbConfig.getUserNameVaultKey(),
+                dbConfig.getUserName()));
+        hc.setPassword(secretResolver.resolveOrFallback(
+                dbConfig.getPasswordVaultKey(),
+                dbConfig.getPassword()));
 
         // set non-standard params
         hc.addDataSourceProperty(PropertyKey.cachePrepStmts.getKeyName(), true);

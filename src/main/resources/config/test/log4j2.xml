@@ -27,6 +27,8 @@
         <AsyncLogger name="org.apache.tomcat.util" level="WARN"/>
         <AsyncLogger name="jndi" level="WARN"/>
 
+        <AsyncLogger name="de.rwth.idsg.steve" level="INFO"/>
+
         <AsyncRoot level="DEBUG">
             <AppenderRef ref="CONSOLE"/>
         </AsyncRoot>

@@ -20,17 +20,8 @@ package de.rwth.idsg.steve.utils;
 
 import com.google.common.collect.Sets;
 import de.rwth.idsg.steve.config.BeanConfiguration;
-import de.rwth.idsg.steve.repository.dto.ChargePoint;
-import de.rwth.idsg.steve.repository.dto.ConnectorStatus;
-import de.rwth.idsg.steve.repository.dto.InsertReservationParams;
-import de.rwth.idsg.steve.repository.dto.Reservation;
-import de.rwth.idsg.steve.repository.dto.Transaction;
-import de.rwth.idsg.steve.repository.dto.TransactionDetails;
-import de.rwth.idsg.steve.repository.impl.AddressRepositoryImpl;
-import de.rwth.idsg.steve.repository.impl.ChargePointRepositoryImpl;
-import de.rwth.idsg.steve.repository.impl.OcppTagRepositoryImpl;
-import de.rwth.idsg.steve.repository.impl.ReservationRepositoryImpl;
-import de.rwth.idsg.steve.repository.impl.TransactionRepositoryImpl;
+import de.rwth.idsg.steve.repository.dto.*;
+import de.rwth.idsg.steve.repository.impl.*;
 import de.rwth.idsg.steve.web.dto.ReservationQueryForm;
 import de.rwth.idsg.steve.web.dto.TransactionQueryForm;
 import jooq.steve.db.DefaultCatalog;
@@ -71,7 +62,7 @@ public class __DatabasePreparer__ {
     private static final String REGISTERED_CHARGE_BOX_ID_2 = "charge_box_2aa6a783d47d_2";
     private static final String REGISTERED_OCPP_TAG = "id_tag_2aa6a783d47d";
 
-    private static final BeanConfiguration beanConfiguration = new BeanConfiguration();
+    private static final BeanConfiguration beanConfiguration = new BeanConfiguration(null);
     private static final DSLContext dslContext = beanConfiguration.dslContext();
 
     public static void prepare() {

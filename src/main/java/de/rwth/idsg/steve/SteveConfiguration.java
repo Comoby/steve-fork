@@ -33,7 +33,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Getter
 public enum SteveConfiguration {
     CONFIG;
-
+//
     // Root mapping for Spring
     private final String springMapping = "/";
     // Web frontend
@@ -60,6 +60,7 @@ public enum SteveConfiguration {
     private final WebApi webApi;
     private final DB db;
     private final Jetty jetty;
+    private final Azure azure;
 
     SteveConfiguration() {
         PropertiesFileLoader p = new PropertiesFileLoader("main.properties");
@@ -84,8 +85,10 @@ public enum SteveConfiguration {
                .ip(p.getString("db.ip"))
                .port(p.getInt("db.port"))
                .schema(p.getString("db.schema"))
-               .userName(p.getString("db.user"))
-               .password(p.getString("db.password"))
+               .userName(p.getOptionalString("db.user"))
+               .userNameVaultKey(p.getOptionalString("db.user.vault"))
+               .password(p.getOptionalString("db.password"))
+               .passwordVaultKey(p.getOptionalString("db.password.vault"))
                .sqlLogging(p.getBoolean("db.sql.logging"))
                .build();
 
@@ -94,12 +97,15 @@ public enum SteveConfiguration {
         auth = Auth.builder()
                    .passwordEncoder(encoder)
                    .userName(p.getString("auth.user"))
-                   .encodedPassword(encoder.encode(p.getString("auth.password")))
+                   .userNameVaultKey(p.getString("auth.user.vault"))
+                   .rawPassword(p.getOptionalString("auth.password"))
+                   .rawPasswordVaultKey(p.getOptionalString("auth.password.vault"))
                    .build();
 
         webApi = WebApi.builder()
                        .headerKey(p.getOptionalString("webapi.key"))
                        .headerValue(p.getOptionalString("webapi.value"))
+                       .headerValueVaultKey(p.getOptionalString("webapi.value.vault"))
                        .build();
 
         ocpp = Ocpp.builder()
@@ -107,6 +113,10 @@ public enum SteveConfiguration {
                    .wsSessionSelectStrategy(
                            WsSessionSelectStrategyEnum.fromName(p.getString("ws.session.select.strategy")))
                    .build();
+
+        azure = Azure.builder()
+                .vaultUrl(p.getString("azure.vault-url"))
+                .build();
 
         validate();
     }
@@ -178,7 +188,9 @@ public enum SteveConfiguration {
         private final int port;
         private final String schema;
         private final String userName;
+        private final String userNameVaultKey;
         private final String password;
+        private final String passwordVaultKey;
         private final boolean sqlLogging;
     }
 
@@ -187,13 +199,16 @@ public enum SteveConfiguration {
     public static class Auth {
         private final PasswordEncoder passwordEncoder;
         private final String userName;
-        private final String encodedPassword;
+        private final String userNameVaultKey;
+        private final String rawPassword;
+        private final String rawPasswordVaultKey;
     }
 
     @Builder @Getter
     public static class WebApi {
         private final String headerKey;
         private final String headerValue;
+        private final String headerValueVaultKey;
     }
 
     // OCPP-related configuration
@@ -201,6 +216,12 @@ public enum SteveConfiguration {
     public static class Ocpp {
         private final boolean autoRegisterUnknownStations;
         private final WsSessionSelectStrategy wsSessionSelectStrategy;
+    }
+
+    // custom configuration
+    @Builder @Getter
+    public static class Azure {
+        private final String vaultUrl;
     }
 
 }
