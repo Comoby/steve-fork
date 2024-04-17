@@ -23,7 +23,7 @@ import de.rwth.idsg.steve.SteveProdCondition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.oas.annotations.EnableOpenApi;
 import springfox.documentation.spi.DocumentationType;
@@ -51,18 +51,18 @@ public class ApiDocsConfiguration {
         String title = "SteVe REST API Documentation";
 
         var apiInfo = new ApiInfoBuilder()
-            .title(title)
-            .description(title)
-            .license("GPL-3.0")
-            .licenseUrl("https://github.com/steve-community/steve/blob/master/LICENSE.txt")
-            .version(SteveConfiguration.CONFIG.getSteveVersion())
-            .build();
+                .title(title)
+                .description(title)
+                .license("GPL-3.0")
+                .licenseUrl("https://github.com/steve-community/steve/blob/master/LICENSE.txt")
+                .version(SteveConfiguration.CONFIG.getSteveVersion())
+                .build();
 
         return new Docket(DocumentationType.OAS_30)
-            .useDefaultResponseMessages(false)
-            .apiInfo(apiInfo)
-            .select()
-            .apis(withClassAnnotation(RestController.class))
-            .build();
+                .useDefaultResponseMessages(false)
+                .apiInfo(apiInfo)
+                .select()
+                .apis(withClassAnnotation(Controller.class))
+                .build();
     }
 }
