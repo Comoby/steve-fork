@@ -82,9 +82,12 @@ public enum SteveConfiguration {
                      .build();
 
         db = DB.builder()
-               .ip(p.getString("db.ip"))
-               .port(p.getInt("db.port"))
-               .schema(p.getString("db.schema"))
+               .ip(p.getOptionalString("db.ip"))
+               .ipVaultKey(p.getOptionalString("db.ip.vault"))
+               .port(p.getOptionalInt("db.port"))
+               .portVaultKey(p.getOptionalString("db.port.vault"))
+               .schema(p.getOptionalString("db.schema"))
+               .schemaVaultKey(p.getOptionalString("db.schema.vault"))
                .userName(p.getOptionalString("db.user"))
                .userNameVaultKey(p.getOptionalString("db.user.vault"))
                .password(p.getOptionalString("db.password"))
@@ -96,8 +99,8 @@ public enum SteveConfiguration {
 
         auth = Auth.builder()
                    .passwordEncoder(encoder)
-                   .userName(p.getString("auth.user"))
-                   .userNameVaultKey(p.getString("auth.user.vault"))
+                   .userName(p.getOptionalString("auth.user"))
+                   .userNameVaultKey(p.getOptionalString("auth.user.vault"))
                    .rawPassword(p.getOptionalString("auth.password"))
                    .rawPasswordVaultKey(p.getOptionalString("auth.password.vault"))
                    .build();
@@ -185,8 +188,11 @@ public enum SteveConfiguration {
     @Builder @Getter
     public static class DB {
         private final String ip;
+        private final String ipVaultKey;
         private final int port;
+        private final String portVaultKey;
         private final String schema;
+        private final String schemaVaultKey;
         private final String userName;
         private final String userNameVaultKey;
         private final String password;

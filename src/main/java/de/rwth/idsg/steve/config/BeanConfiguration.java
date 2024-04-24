@@ -95,13 +95,26 @@ public class BeanConfiguration implements WebMvcConfigurer {
         HikariConfig hc = new HikariConfig();
 
         // set standard params
-        hc.setJdbcUrl("jdbc:mysql://" + dbConfig.getIp() + ":" + dbConfig.getPort() + "/" + dbConfig.getSchema());
-        hc.setUsername(secretResolver.resolveOrFallback(
+        String endpoint = secretResolver.resolveOrFallback(
+                dbConfig.getIpVaultKey(),
+                dbConfig.getIp());
+        String port = secretResolver.resolveOrFallback(
+                dbConfig.getPortVaultKey(),
+                String.valueOf(dbConfig.getPort()));
+        String schema = secretResolver.resolveOrFallback(
+                dbConfig.getSchemaVaultKey(),
+                dbConfig.getSchema());
+        String username = secretResolver.resolveOrFallback(
                 dbConfig.getUserNameVaultKey(),
-                dbConfig.getUserName()));
-        hc.setPassword(secretResolver.resolveOrFallback(
+                dbConfig.getUserName());
+        String password = secretResolver.resolveOrFallback(
                 dbConfig.getPasswordVaultKey(),
-                dbConfig.getPassword()));
+                dbConfig.getPassword());
+
+        hc.setJdbcUrl("jdbc:mysql://%s:%s/%s?useSSL=true&serverTimezone=UTC\";myDbConn=DriverManager.getConnection(url, \"%s\", \"%s\")"
+                .formatted(endpoint, port, schema, username, password));
+        hc.setUsername(username);
+        hc.setPassword(password);
 
         // set non-standard params
         hc.addDataSourceProperty(PropertyKey.cachePrepStmts.getKeyName(), true);
@@ -123,7 +136,7 @@ public class BeanConfiguration implements WebMvcConfigurer {
      * Jooq also does it that way, but only if we do not change anything about the
      * config after the init (which we don't do anyways) and if the ConnectionProvider
      * does not store any shared state (we use DataSourceConnectionProvider of Jooq, so no problem).
-     *
+     * <p>
      * Some sources and discussion:
      * - http://www.jooq.org/doc/3.6/manual/getting-started/tutorials/jooq-with-spring/
      * - http://jooq-user.narkive.com/2fvuLodn/dslcontext-and-threads
@@ -155,7 +168,7 @@ public class BeanConfiguration implements WebMvcConfigurer {
     @Bean
     public ScheduledExecutorService scheduledExecutorService() {
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("SteVe-Executor-%d")
-                                                                .build();
+                .build();
 
         executor = new ScheduledThreadPoolExecutor(5, threadFactory);
         return executor;
@@ -271,9 +284,9 @@ public class BeanConfiguration implements WebMvcConfigurer {
     @Bean
     public ObjectMapper objectMapper(RequestMappingHandlerAdapter requestMappingHandlerAdapter) {
         return requestMappingHandlerAdapter.getMessageConverters().stream()
-            .filter(converter -> converter instanceof MappingJackson2HttpMessageConverter)
-            .findAny()
-            .map(conv -> ((MappingJackson2HttpMessageConverter) conv).getObjectMapper())
-            .orElseThrow(() -> new RuntimeException("There is no MappingJackson2HttpMessageConverter in Spring context"));
+                .filter(converter -> converter instanceof MappingJackson2HttpMessageConverter)
+                .findAny()
+                .map(conv -> ((MappingJackson2HttpMessageConverter) conv).getObjectMapper())
+                .orElseThrow(() -> new RuntimeException("There is no MappingJackson2HttpMessageConverter in Spring context"));
     }
 }
