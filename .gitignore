@@ -1,4 +1,5 @@
-/target
+/target/*
+!target/steve.jar
 /.idea
 *.iml
 .DS_Store
